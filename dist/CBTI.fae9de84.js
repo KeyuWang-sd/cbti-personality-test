@@ -207,11 +207,11 @@
       });
     }
   }
-})({"dWFph":[function(require,module,exports,__globalThis) {
+})({"eP4Zc":[function(require,module,exports,__globalThis) {
 var global = arguments[3];
 var HMR_HOST = null;
 var HMR_PORT = null;
-var HMR_SERVER_PORT = 56176;
+var HMR_SERVER_PORT = 1234;
 var HMR_SECURE = false;
 var HMR_ENV_HASH = "439701173a9199ea";
 var HMR_USE_SSE = false;
@@ -25014,10 +25014,19 @@ var _s = $RefreshSig$();
 const SUPABASE_URL = 'https://gjlrqshqeikivymipkim.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_0LEbw-l8RWq2ogHmt_h1Ew_8gkqcT9q';
 // 初始化Supabase
-const { createClient } = window['supabase'];
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+let supabase = null;
+if (typeof window !== 'undefined' && window['supabase']) {
+    const { createClient } = window['supabase'];
+    supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+}
 const TestPage = ()=>{
     _s();
+    // 昵称输入状态
+    const [nickname, setNickname] = (0, _react.useState)('');
+    const [showStartTest, setShowStartTest] = (0, _react.useState)(false);
+    const [showModal, setShowModal] = (0, _react.useState)(false);
+    const [modalMessage, setModalMessage] = (0, _react.useState)('');
+    // 测试状态
     const [currentQuestionIndex, setCurrentQuestionIndex] = (0, _react.useState)(()=>{
         const saved = localStorage.getItem('cbti_currentQuestion');
         return saved ? parseInt(saved) : 0;
@@ -25028,6 +25037,7 @@ const TestPage = ()=>{
     });
     const [testCompleted, setTestCompleted] = (0, _react.useState)(false);
     const [testResult, setTestResult] = (0, _react.useState)(null);
+    const [isSubmitting, setIsSubmitting] = (0, _react.useState)(false);
     (0, _react.useEffect)(()=>{
         localStorage.setItem('cbti_currentQuestion', String(currentQuestionIndex));
     }, [
@@ -25038,6 +25048,15 @@ const TestPage = ()=>{
     }, [
         answers
     ]);
+    // 开始测试
+    const handleStartTest = ()=>{
+        if (!nickname.trim()) {
+            setModalMessage("\u8BF7\u5148\u586B\u5199\u6635\u79F0");
+            setShowModal(true);
+            return;
+        }
+        setShowStartTest(true);
+    };
     const currentQuestion = (0, _questions.questions)[currentQuestionIndex];
     const selectedAnswer = answers[currentQuestionIndex];
     const handleSelectAnswer = (answer)=>{
@@ -25048,14 +25067,23 @@ const TestPage = ()=>{
         setAnswers(newAnswers);
     };
     const saveResultToSupabase = async (nickname, result)=>{
+        if (!supabase) {
+            console.error("Supabase\u672A\u521D\u59CB\u5316");
+            return false;
+        }
         try {
-            const { data, error } = await supabase.from("\u7ED3\u679C").insert({
-                nickname: nickname || "\u533F\u540D",
-                social: result.dimensionResults.S.direction === 'positive' ? "\u5916\u653E\u55A7\u56A3" : "\u72EC\u5904\u7F04\u9ED8",
-                study: result.dimensionResults.L.direction === 'positive' ? "\u6FC0\u8FDB\u5185\u5377" : "\u865A\u65E0\u6446\u70C2",
-                action: result.dimensionResults.D.direction === 'positive' ? "\u79E9\u5E8F\u81EA\u5F8B" : "\u6DF7\u6C8C\u62D6\u5EF6",
-                heart: result.dimensionResults.W.direction === 'positive' ? "\u73B0\u5B9E\u529F\u5229" : "\u611F\u6027\u5185\u8017",
-                personality: result.personality.code
+            const { data, error } = await supabase.from('results').insert({
+                answers: JSON.stringify({
+                    nickname: nickname || "\u533F\u540D"
+                }),
+                scores: JSON.stringify(result.scores),
+                personality: result.personality.code,
+                dimension_results: JSON.stringify({
+                    social: result.dimensionResults.S.direction === 'positive' ? "\u5916\u653E\u55A7\u56A3" : "\u72EC\u5904\u7F04\u9ED8",
+                    study: result.dimensionResults.L.direction === 'positive' ? "\u6FC0\u8FDB\u5185\u5377" : "\u865A\u65E0\u6446\u70C2",
+                    action: result.dimensionResults.D.direction === 'positive' ? "\u79E9\u5E8F\u81EA\u5F8B" : "\u6DF7\u6C8C\u62D6\u5EF6",
+                    heart: result.dimensionResults.W.direction === 'positive' ? "\u73B0\u5B9E\u529F\u5229" : "\u611F\u6027\u5185\u8017"
+                })
             }).select();
             if (error) {
                 console.error("\u4FDD\u5B58\u5931\u8D25:", error);
@@ -25115,15 +25143,126 @@ const TestPage = ()=>{
         };
         return interpretations[dimension][direction];
     };
-    const [nickname, setNickname] = (0, _react.useState)('');
-    const [saveStatus, setSaveStatus] = (0, _react.useState)('idle');
-    const handleSave = async ()=>{
-        if (!testResult) return;
-        setSaveStatus('saving');
-        const success = await saveResultToSupabase(nickname, testResult);
-        setSaveStatus(success ? 'success' : 'error');
-        if (success) setTimeout(()=>setSaveStatus('idle'), 2000);
-    };
+    // 自动提交结果
+    (0, _react.useEffect)(()=>{
+        if (testCompleted && testResult && !isSubmitting) {
+            setIsSubmitting(true);
+            saveResultToSupabase(nickname, testResult).then(()=>{
+                setIsSubmitting(false);
+            });
+        }
+    }, [
+        testCompleted,
+        testResult
+    ]);
+    // 首页
+    if (!showStartTest) return /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+        className: "test-page",
+        children: [
+            /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("h1", {
+                className: "test-title",
+                children: "CBTI\u5F53\u4EE3\u5927\u5B66\u751F\u6C99\u96D5\u70ED\u6897\u4EBA\u683C\u6D4B\u8BD5"
+            }, void 0, false, {
+                fileName: "src/frontend/pages/TestPage.tsx",
+                lineNumber: 166,
+                columnNumber: 9
+            }, undefined),
+            /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                className: "auth-container",
+                children: /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                    className: "auth-card",
+                    children: [
+                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("h2", {
+                            children: "\u6B22\u8FCE\u53C2\u4E0E\u6D4B\u8BD5"
+                        }, void 0, false, {
+                            fileName: "src/frontend/pages/TestPage.tsx",
+                            lineNumber: 169,
+                            columnNumber: 13
+                        }, undefined),
+                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
+                            className: "auth-description",
+                            children: "\u8BF7\u5148\u586B\u5199\u6635\u79F0\uFF0C\u7136\u540E\u5F00\u59CB\u6D4B\u8BD5"
+                        }, void 0, false, {
+                            fileName: "src/frontend/pages/TestPage.tsx",
+                            lineNumber: 170,
+                            columnNumber: 13
+                        }, undefined),
+                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                            className: "nickname-input",
+                            children: /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("input", {
+                                type: "text",
+                                placeholder: "\u8BF7\u8F93\u5165\u6635\u79F0",
+                                value: nickname,
+                                onChange: (e)=>setNickname(e.target.value),
+                                className: "nickname-field"
+                            }, void 0, false, {
+                                fileName: "src/frontend/pages/TestPage.tsx",
+                                lineNumber: 173,
+                                columnNumber: 15
+                            }, undefined)
+                        }, void 0, false, {
+                            fileName: "src/frontend/pages/TestPage.tsx",
+                            lineNumber: 172,
+                            columnNumber: 13
+                        }, undefined),
+                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
+                            className: "start-test-button",
+                            onClick: handleStartTest,
+                            children: "\u5F00\u59CB\u6D4B\u8BD5"
+                        }, void 0, false, {
+                            fileName: "src/frontend/pages/TestPage.tsx",
+                            lineNumber: 182,
+                            columnNumber: 13
+                        }, undefined)
+                    ]
+                }, void 0, true, {
+                    fileName: "src/frontend/pages/TestPage.tsx",
+                    lineNumber: 168,
+                    columnNumber: 11
+                }, undefined)
+            }, void 0, false, {
+                fileName: "src/frontend/pages/TestPage.tsx",
+                lineNumber: 167,
+                columnNumber: 9
+            }, undefined),
+            showModal && /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                className: "modal-overlay",
+                children: /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                    className: "modal-content",
+                    children: [
+                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
+                            children: modalMessage
+                        }, void 0, false, {
+                            fileName: "src/frontend/pages/TestPage.tsx",
+                            lineNumber: 195,
+                            columnNumber: 15
+                        }, undefined),
+                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
+                            onClick: ()=>setShowModal(false),
+                            children: "\u786E\u5B9A"
+                        }, void 0, false, {
+                            fileName: "src/frontend/pages/TestPage.tsx",
+                            lineNumber: 196,
+                            columnNumber: 15
+                        }, undefined)
+                    ]
+                }, void 0, true, {
+                    fileName: "src/frontend/pages/TestPage.tsx",
+                    lineNumber: 194,
+                    columnNumber: 13
+                }, undefined)
+            }, void 0, false, {
+                fileName: "src/frontend/pages/TestPage.tsx",
+                lineNumber: 193,
+                columnNumber: 11
+            }, undefined)
+        ]
+    }, void 0, true, {
+        fileName: "src/frontend/pages/TestPage.tsx",
+        lineNumber: 165,
+        columnNumber: 7
+    }, undefined);
+    // 结果页
     if (testCompleted) return /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
         className: "test-result",
         children: /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25134,7 +25273,7 @@ const TestPage = ()=>{
                     children: "\u4F60\u7684\u4EBA\u683C\u7C7B\u578B\u662F:"
                 }, void 0, false, {
                     fileName: "src/frontend/pages/TestPage.tsx",
-                    lineNumber: 141,
+                    lineNumber: 209,
                     columnNumber: 11
                 }, undefined),
                 /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25148,7 +25287,7 @@ const TestPage = ()=>{
                                     children: testResult.personality.name
                                 }, void 0, false, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 144,
+                                    lineNumber: 212,
                                     columnNumber: 15
                                 }, undefined),
                                 /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("h3", {
@@ -25156,13 +25295,13 @@ const TestPage = ()=>{
                                     children: testResult.personality.code
                                 }, void 0, false, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 145,
+                                    lineNumber: 213,
                                     columnNumber: 15
                                 }, undefined)
                             ]
                         }, void 0, true, {
                             fileName: "src/frontend/pages/TestPage.tsx",
-                            lineNumber: 143,
+                            lineNumber: 211,
                             columnNumber: 13
                         }, undefined),
                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25173,12 +25312,12 @@ const TestPage = ()=>{
                                 }
                             }, void 0, false, {
                                 fileName: "src/frontend/pages/TestPage.tsx",
-                                lineNumber: 148,
+                                lineNumber: 216,
                                 columnNumber: 15
                             }, undefined)
                         }, void 0, false, {
                             fileName: "src/frontend/pages/TestPage.tsx",
-                            lineNumber: 147,
+                            lineNumber: 215,
                             columnNumber: 13
                         }, undefined),
                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
@@ -25186,7 +25325,7 @@ const TestPage = ()=>{
                             children: testResult.personality.description
                         }, void 0, false, {
                             fileName: "src/frontend/pages/TestPage.tsx",
-                            lineNumber: 150,
+                            lineNumber: 218,
                             columnNumber: 13
                         }, undefined),
                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25195,21 +25334,39 @@ const TestPage = ()=>{
                                 /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
                                     className: "dimension",
                                     children: [
-                                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("h3", {
-                                            children: "\u793E\u4EA4\u7EF4\u5EA6"
-                                        }, void 0, false, {
+                                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                                            className: "dimension-header",
+                                            children: [
+                                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("h3", {
+                                                    children: "\u793E\u4EA4\u7EF4\u5EA6"
+                                                }, void 0, false, {
+                                                    fileName: "src/frontend/pages/TestPage.tsx",
+                                                    lineNumber: 222,
+                                                    columnNumber: 19
+                                                }, undefined),
+                                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                                                    className: "dimension-icon",
+                                                    children: "\uD83D\uDC65"
+                                                }, void 0, false, {
+                                                    fileName: "src/frontend/pages/TestPage.tsx",
+                                                    lineNumber: 223,
+                                                    columnNumber: 19
+                                                }, undefined)
+                                            ]
+                                        }, void 0, true, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 153,
+                                            lineNumber: 221,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
+                                            className: "dimension-tendency",
                                             children: [
                                                 "\u503E\u5411: ",
                                                 testResult.dimensionResults.S.direction === 'positive' ? "\u5916\u653E\u55A7\u56A3" : "\u72EC\u5904\u7F04\u9ED8"
                                             ]
                                         }, void 0, true, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 154,
+                                            lineNumber: 225,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
@@ -25217,33 +25374,51 @@ const TestPage = ()=>{
                                             children: getDimensionInterpretation('S', testResult.dimensionResults.S.direction)
                                         }, void 0, false, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 155,
+                                            lineNumber: 226,
                                             columnNumber: 17
                                         }, undefined)
                                     ]
                                 }, void 0, true, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 152,
+                                    lineNumber: 220,
                                     columnNumber: 15
                                 }, undefined),
                                 /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
                                     className: "dimension",
                                     children: [
-                                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("h3", {
-                                            children: "\u5B66\u4E60\u7EF4\u5EA6"
-                                        }, void 0, false, {
+                                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                                            className: "dimension-header",
+                                            children: [
+                                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("h3", {
+                                                    children: "\u5B66\u4E60\u7EF4\u5EA6"
+                                                }, void 0, false, {
+                                                    fileName: "src/frontend/pages/TestPage.tsx",
+                                                    lineNumber: 230,
+                                                    columnNumber: 19
+                                                }, undefined),
+                                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                                                    className: "dimension-icon",
+                                                    children: "\uD83D\uDCDA"
+                                                }, void 0, false, {
+                                                    fileName: "src/frontend/pages/TestPage.tsx",
+                                                    lineNumber: 231,
+                                                    columnNumber: 19
+                                                }, undefined)
+                                            ]
+                                        }, void 0, true, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 158,
+                                            lineNumber: 229,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
+                                            className: "dimension-tendency",
                                             children: [
                                                 "\u503E\u5411: ",
                                                 testResult.dimensionResults.L.direction === 'positive' ? "\u6FC0\u8FDB\u5185\u5377" : "\u865A\u65E0\u6446\u70C2"
                                             ]
                                         }, void 0, true, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 159,
+                                            lineNumber: 233,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
@@ -25251,33 +25426,51 @@ const TestPage = ()=>{
                                             children: getDimensionInterpretation('L', testResult.dimensionResults.L.direction)
                                         }, void 0, false, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 160,
+                                            lineNumber: 234,
                                             columnNumber: 17
                                         }, undefined)
                                     ]
                                 }, void 0, true, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 157,
+                                    lineNumber: 228,
                                     columnNumber: 15
                                 }, undefined),
                                 /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
                                     className: "dimension",
                                     children: [
-                                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("h3", {
-                                            children: "\u884C\u4E8B\u7EF4\u5EA6"
-                                        }, void 0, false, {
+                                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                                            className: "dimension-header",
+                                            children: [
+                                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("h3", {
+                                                    children: "\u884C\u4E8B\u7EF4\u5EA6"
+                                                }, void 0, false, {
+                                                    fileName: "src/frontend/pages/TestPage.tsx",
+                                                    lineNumber: 238,
+                                                    columnNumber: 19
+                                                }, undefined),
+                                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                                                    className: "dimension-icon",
+                                                    children: "\u26A1"
+                                                }, void 0, false, {
+                                                    fileName: "src/frontend/pages/TestPage.tsx",
+                                                    lineNumber: 239,
+                                                    columnNumber: 19
+                                                }, undefined)
+                                            ]
+                                        }, void 0, true, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 163,
+                                            lineNumber: 237,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
+                                            className: "dimension-tendency",
                                             children: [
                                                 "\u503E\u5411: ",
                                                 testResult.dimensionResults.D.direction === 'positive' ? "\u79E9\u5E8F\u81EA\u5F8B" : "\u6DF7\u6C8C\u62D6\u5EF6"
                                             ]
                                         }, void 0, true, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 164,
+                                            lineNumber: 241,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
@@ -25285,33 +25478,51 @@ const TestPage = ()=>{
                                             children: getDimensionInterpretation('D', testResult.dimensionResults.D.direction)
                                         }, void 0, false, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 165,
+                                            lineNumber: 242,
                                             columnNumber: 17
                                         }, undefined)
                                     ]
                                 }, void 0, true, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 162,
+                                    lineNumber: 236,
                                     columnNumber: 15
                                 }, undefined),
                                 /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
                                     className: "dimension",
                                     children: [
-                                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("h3", {
-                                            children: "\u5185\u5FC3\u7EF4\u5EA6"
-                                        }, void 0, false, {
+                                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                                            className: "dimension-header",
+                                            children: [
+                                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("h3", {
+                                                    children: "\u5185\u5FC3\u7EF4\u5EA6"
+                                                }, void 0, false, {
+                                                    fileName: "src/frontend/pages/TestPage.tsx",
+                                                    lineNumber: 246,
+                                                    columnNumber: 19
+                                                }, undefined),
+                                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                                                    className: "dimension-icon",
+                                                    children: "\u2764\uFE0F"
+                                                }, void 0, false, {
+                                                    fileName: "src/frontend/pages/TestPage.tsx",
+                                                    lineNumber: 247,
+                                                    columnNumber: 19
+                                                }, undefined)
+                                            ]
+                                        }, void 0, true, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 168,
+                                            lineNumber: 245,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
+                                            className: "dimension-tendency",
                                             children: [
                                                 "\u503E\u5411: ",
                                                 testResult.dimensionResults.W.direction === 'positive' ? "\u73B0\u5B9E\u529F\u5229" : "\u611F\u6027\u5185\u8017"
                                             ]
                                         }, void 0, true, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 169,
+                                            lineNumber: 249,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
@@ -25319,50 +25530,43 @@ const TestPage = ()=>{
                                             children: getDimensionInterpretation('W', testResult.dimensionResults.W.direction)
                                         }, void 0, false, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 170,
+                                            lineNumber: 250,
                                             columnNumber: 17
                                         }, undefined)
                                     ]
                                 }, void 0, true, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 167,
+                                    lineNumber: 244,
                                     columnNumber: 15
                                 }, undefined)
                             ]
                         }, void 0, true, {
                             fileName: "src/frontend/pages/TestPage.tsx",
-                            lineNumber: 151,
+                            lineNumber: 219,
                             columnNumber: 13
                         }, undefined),
-                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
-                            className: "nickname-input",
+                        isSubmitting && /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                            className: "submitting-status",
                             children: [
-                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("input", {
-                                    type: "text",
-                                    placeholder: "\u8BF7\u8F93\u5165\u6635\u79F0\uFF08\u53EF\u9009\uFF09",
-                                    value: nickname,
-                                    onChange: (e)=>setNickname(e.target.value),
-                                    className: "nickname-field"
+                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                                    className: "loading"
                                 }, void 0, false, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 174,
-                                    columnNumber: 15
+                                    lineNumber: 255,
+                                    columnNumber: 17
                                 }, undefined),
-                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
-                                    className: `save-button ${saveStatus}`,
-                                    onClick: handleSave,
-                                    disabled: saveStatus === 'saving',
-                                    children: saveStatus === 'saving' ? "\u4FDD\u5B58\u4E2D..." : saveStatus === 'success' ? "\u4FDD\u5B58\u6210\u529F\uFF01" : saveStatus === 'error' ? "\u4FDD\u5B58\u5931\u8D25" : "\u4FDD\u5B58\u5230\u4E91\u7AEF"
+                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
+                                    children: "\u6B63\u5728\u63D0\u4EA4\u7ED3\u679C..."
                                 }, void 0, false, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 181,
-                                    columnNumber: 15
+                                    lineNumber: 256,
+                                    columnNumber: 17
                                 }, undefined)
                             ]
                         }, void 0, true, {
                             fileName: "src/frontend/pages/TestPage.tsx",
-                            lineNumber: 173,
-                            columnNumber: 13
+                            lineNumber: 254,
+                            columnNumber: 15
                         }, undefined),
                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
                             className: "result-actions",
@@ -25373,7 +25577,7 @@ const TestPage = ()=>{
                                     children: "\u5206\u4EAB\u7ED9\u597D\u53CB"
                                 }, void 0, false, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 192,
+                                    lineNumber: 260,
                                     columnNumber: 15
                                 }, undefined),
                                 /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
@@ -25382,38 +25586,38 @@ const TestPage = ()=>{
                                         setTestCompleted(false);
                                         setCurrentQuestionIndex(0);
                                         setAnswers(Array((0, _questions.questions).length).fill(null));
-                                        setNickname('');
-                                        setSaveStatus('idle');
+                                        setIsSubmitting(false);
                                     },
                                     children: "\u91CD\u65B0\u6D4B\u8BD5"
                                 }, void 0, false, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 198,
+                                    lineNumber: 266,
                                     columnNumber: 15
                                 }, undefined)
                             ]
                         }, void 0, true, {
                             fileName: "src/frontend/pages/TestPage.tsx",
-                            lineNumber: 191,
+                            lineNumber: 259,
                             columnNumber: 13
                         }, undefined)
                     ]
                 }, void 0, true, {
                     fileName: "src/frontend/pages/TestPage.tsx",
-                    lineNumber: 142,
+                    lineNumber: 210,
                     columnNumber: 11
                 }, undefined)
             ]
         }, void 0, true, {
             fileName: "src/frontend/pages/TestPage.tsx",
-            lineNumber: 140,
+            lineNumber: 208,
             columnNumber: 9
         }, undefined)
     }, void 0, false, {
         fileName: "src/frontend/pages/TestPage.tsx",
-        lineNumber: 139,
+        lineNumber: 207,
         columnNumber: 7
     }, undefined);
+    // 答题页
     return /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
         className: "test-page",
         children: [
@@ -25422,7 +25626,7 @@ const TestPage = ()=>{
                 children: "CBTI\u5F53\u4EE3\u5927\u5B66\u751F\u6C99\u96D5\u70ED\u6897\u4EBA\u683C\u6D4B\u8BD5"
             }, void 0, false, {
                 fileName: "src/frontend/pages/TestPage.tsx",
-                lineNumber: 219,
+                lineNumber: 287,
                 columnNumber: 7
             }, undefined),
             /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25435,7 +25639,7 @@ const TestPage = ()=>{
                         }
                     }, void 0, false, {
                         fileName: "src/frontend/pages/TestPage.tsx",
-                        lineNumber: 221,
+                        lineNumber: 289,
                         columnNumber: 9
                     }, undefined),
                     /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("span", {
@@ -25447,13 +25651,13 @@ const TestPage = ()=>{
                         ]
                     }, void 0, true, {
                         fileName: "src/frontend/pages/TestPage.tsx",
-                        lineNumber: 225,
+                        lineNumber: 293,
                         columnNumber: 9
                     }, undefined)
                 ]
             }, void 0, true, {
                 fileName: "src/frontend/pages/TestPage.tsx",
-                lineNumber: 220,
+                lineNumber: 288,
                 columnNumber: 7
             }, undefined),
             /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)((0, _questionCardDefault.default), {
@@ -25462,7 +25666,7 @@ const TestPage = ()=>{
                 onSelectAnswer: handleSelectAnswer
             }, void 0, false, {
                 fileName: "src/frontend/pages/TestPage.tsx",
-                lineNumber: 229,
+                lineNumber: 297,
                 columnNumber: 7
             }, undefined),
             /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25475,7 +25679,7 @@ const TestPage = ()=>{
                         children: "\u4E0A\u4E00\u9898"
                     }, void 0, false, {
                         fileName: "src/frontend/pages/TestPage.tsx",
-                        lineNumber: 235,
+                        lineNumber: 303,
                         columnNumber: 9
                     }, undefined),
                     /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
@@ -25484,23 +25688,23 @@ const TestPage = ()=>{
                         children: currentQuestionIndex === (0, _questions.questions).length - 1 ? "\u63D0\u4EA4" : "\u4E0B\u4E00\u9898"
                     }, void 0, false, {
                         fileName: "src/frontend/pages/TestPage.tsx",
-                        lineNumber: 242,
+                        lineNumber: 310,
                         columnNumber: 9
                     }, undefined)
                 ]
             }, void 0, true, {
                 fileName: "src/frontend/pages/TestPage.tsx",
-                lineNumber: 234,
+                lineNumber: 302,
                 columnNumber: 7
             }, undefined)
         ]
     }, void 0, true, {
         fileName: "src/frontend/pages/TestPage.tsx",
-        lineNumber: 218,
+        lineNumber: 286,
         columnNumber: 5
     }, undefined);
 };
-_s(TestPage, "OU7ZXUjMMKoYBa7sdmnrjRwEKiM=");
+_s(TestPage, "aIz3uIynY49U2TD51PjDo1rZTw0=");
 _c = TestPage;
 exports.default = TestPage;
 var _c;
@@ -29221,6 +29425,6 @@ function fallbackCopyTextToClipboard(text) {
     }
 }
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}]},["dWFph","jIhU4"], "jIhU4", "parcelRequiree626", {}, null, null, "http://localhost:56176")
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}]},["eP4Zc","jIhU4"], "jIhU4", "parcelRequiree626", {}, null, null, "http://localhost:1234")
 
 //# sourceMappingURL=CBTI.fae9de84.js.map

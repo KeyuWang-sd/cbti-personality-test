@@ -10,10 +10,20 @@ const SUPABASE_URL = 'https://gjlrqshqeikivymipkim.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_0LEbw-l8RWq2ogHmt_h1Ew_8gkqcT9q';
 
 // 初始化Supabase
-const { createClient } = window['supabase'];
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+let supabase: any = null;
+if (typeof window !== 'undefined' && (window as any)['supabase']) {
+  const { createClient } = (window as any)['supabase'];
+  supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+}
 
 const TestPage: React.FC = () => {
+  // 昵称输入状态
+  const [nickname, setNickname] = useState('');
+  const [showStartTest, setShowStartTest] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+  
+  // 测试状态
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(() => {
     const saved = localStorage.getItem('cbti_currentQuestion');
     return saved ? parseInt(saved) : 0;
@@ -24,6 +34,7 @@ const TestPage: React.FC = () => {
   });
   const [testCompleted, setTestCompleted] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('cbti_currentQuestion', String(currentQuestionIndex));
@@ -32,6 +43,17 @@ const TestPage: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('cbti_answers', JSON.stringify(answers));
   }, [answers]);
+
+  // 开始测试
+  const handleStartTest = () => {
+    if (!nickname.trim()) {
+      setModalMessage('请先填写昵称');
+      setShowModal(true);
+      return;
+    }
+    
+    setShowStartTest(true);
+  };
 
   const currentQuestion = questions[currentQuestionIndex];
   const selectedAnswer = answers[currentQuestionIndex];
@@ -43,16 +65,24 @@ const TestPage: React.FC = () => {
   };
 
   const saveResultToSupabase = async (nickname: string, result: any) => {
+    if (!supabase) {
+      console.error('Supabase未初始化');
+      return false;
+    }
+    
     try {
       const { data, error } = await supabase
-        .from('结果')
+        .from('results')
         .insert({
-          nickname: nickname || '匿名',
-          social: result.dimensionResults.S.direction === 'positive' ? '外放喧嚣' : '独处缄默',
-          study: result.dimensionResults.L.direction === 'positive' ? '激进内卷' : '虚无摆烂',
-          action: result.dimensionResults.D.direction === 'positive' ? '秩序自律' : '混沌拖延',
-          heart: result.dimensionResults.W.direction === 'positive' ? '现实功利' : '感性内耗',
-          personality: result.personality.code
+          answers: JSON.stringify({ nickname: nickname || '匿名' }),
+          scores: JSON.stringify(result.scores),
+          personality: result.personality.code,
+          dimension_results: JSON.stringify({
+            social: result.dimensionResults.S.direction === 'positive' ? '外放喧嚣' : '独处缄默',
+            study: result.dimensionResults.L.direction === 'positive' ? '激进内卷' : '虚无摆烂',
+            action: result.dimensionResults.D.direction === 'positive' ? '秩序自律' : '混沌拖延',
+            heart: result.dimensionResults.W.direction === 'positive' ? '现实功利' : '感性内耗'
+          })
         })
         .select();
 
@@ -119,21 +149,59 @@ const TestPage: React.FC = () => {
     return interpretations[dimension][direction];
   };
 
-  const [nickname, setNickname] = useState('');
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
-
-  const handleSave = async () => {
-    if (!testResult) return;
-    
-    setSaveStatus('saving');
-    const success = await saveResultToSupabase(nickname, testResult);
-    setSaveStatus(success ? 'success' : 'error');
-    
-    if (success) {
-      setTimeout(() => setSaveStatus('idle'), 2000);
+  // 自动提交结果
+  useEffect(() => {
+    if (testCompleted && testResult && !isSubmitting) {
+      setIsSubmitting(true);
+      saveResultToSupabase(nickname, testResult).then(() => {
+        setIsSubmitting(false);
+      });
     }
-  };
+  }, [testCompleted, testResult]);
 
+  // 首页
+  if (!showStartTest) {
+    return (
+      <div className="test-page">
+        <h1 className="test-title">CBTI当代大学生沙雕热梗人格测试</h1>
+        <div className="auth-container">
+          <div className="auth-card">
+            <h2>欢迎参与测试</h2>
+            <p className="auth-description">请先填写昵称，然后开始测试</p>
+            
+            <div className="nickname-input">
+              <input
+                type="text"
+                placeholder="请输入昵称"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                className="nickname-field"
+              />
+            </div>
+            
+            <button 
+              className="start-test-button"
+              onClick={handleStartTest}
+            >
+              开始测试
+            </button>
+          </div>
+        </div>
+        
+        {/* 弹窗 */}
+        {showModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <p>{modalMessage}</p>
+              <button onClick={() => setShowModal(false)}>确定</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 结果页
   if (testCompleted) {
     return (
       <div className="test-result">
@@ -150,44 +218,44 @@ const TestPage: React.FC = () => {
             <p className="personality-description">{testResult.personality.description}</p>
             <div className="dimension-results">
               <div className="dimension">
-                <h3>社交维度</h3>
-                <p>倾向: {testResult.dimensionResults.S.direction === 'positive' ? '外放喧嚣' : '独处缄默'}</p>
+                <div className="dimension-header">
+                  <h3>社交维度</h3>
+                  <div className="dimension-icon">👥</div>
+                </div>
+                <p className="dimension-tendency">倾向: {testResult.dimensionResults.S.direction === 'positive' ? '外放喧嚣' : '独处缄默'}</p>
                 <p className="dimension-interpretation">{getDimensionInterpretation('S', testResult.dimensionResults.S.direction)}</p>
               </div>
               <div className="dimension">
-                <h3>学习维度</h3>
-                <p>倾向: {testResult.dimensionResults.L.direction === 'positive' ? '激进内卷' : '虚无摆烂'}</p>
+                <div className="dimension-header">
+                  <h3>学习维度</h3>
+                  <div className="dimension-icon">📚</div>
+                </div>
+                <p className="dimension-tendency">倾向: {testResult.dimensionResults.L.direction === 'positive' ? '激进内卷' : '虚无摆烂'}</p>
                 <p className="dimension-interpretation">{getDimensionInterpretation('L', testResult.dimensionResults.L.direction)}</p>
               </div>
               <div className="dimension">
-                <h3>行事维度</h3>
-                <p>倾向: {testResult.dimensionResults.D.direction === 'positive' ? '秩序自律' : '混沌拖延'}</p>
+                <div className="dimension-header">
+                  <h3>行事维度</h3>
+                  <div className="dimension-icon">⚡</div>
+                </div>
+                <p className="dimension-tendency">倾向: {testResult.dimensionResults.D.direction === 'positive' ? '秩序自律' : '混沌拖延'}</p>
                 <p className="dimension-interpretation">{getDimensionInterpretation('D', testResult.dimensionResults.D.direction)}</p>
               </div>
               <div className="dimension">
-                <h3>内心维度</h3>
-                <p>倾向: {testResult.dimensionResults.W.direction === 'positive' ? '现实功利' : '感性内耗'}</p>
+                <div className="dimension-header">
+                  <h3>内心维度</h3>
+                  <div className="dimension-icon">❤️</div>
+                </div>
+                <p className="dimension-tendency">倾向: {testResult.dimensionResults.W.direction === 'positive' ? '现实功利' : '感性内耗'}</p>
                 <p className="dimension-interpretation">{getDimensionInterpretation('W', testResult.dimensionResults.W.direction)}</p>
               </div>
             </div>
-            <div className="nickname-input">
-              <input
-                type="text"
-                placeholder="请输入昵称（可选）"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                className="nickname-field"
-              />
-              <button
-                className={`save-button ${saveStatus}`}
-                onClick={handleSave}
-                disabled={saveStatus === 'saving'}
-              >
-                {saveStatus === 'saving' ? '保存中...' : 
-                 saveStatus === 'success' ? '保存成功！' : 
-                 saveStatus === 'error' ? '保存失败' : '保存到云端'}
-              </button>
-            </div>
+            {isSubmitting && (
+              <div className="submitting-status">
+                <div className="loading"></div>
+                <p>正在提交结果...</p>
+              </div>
+            )}
             <div className="result-actions">
               <button 
                 className="share-button"
@@ -201,8 +269,7 @@ const TestPage: React.FC = () => {
                   setTestCompleted(false);
                   setCurrentQuestionIndex(0);
                   setAnswers(Array(questions.length).fill(null));
-                  setNickname('');
-                  setSaveStatus('idle');
+                  setIsSubmitting(false);
                 }}
               >
                 重新测试
@@ -214,6 +281,7 @@ const TestPage: React.FC = () => {
     );
   }
 
+  // 答题页
   return (
     <div className="test-page">
       <h1 className="test-title">CBTI当代大学生沙雕热梗人格测试</h1>
