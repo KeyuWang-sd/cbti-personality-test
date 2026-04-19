@@ -1,7 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const config = require('./config/database');
+// const config = require('./config/database');
+const PORT = 3003;
 const { initializeDB } = require('./config/dbConnection');
 const apiRoutes = require('./routes/api');
 const adminRoutes = require('./routes/admin');
@@ -37,7 +38,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = config.server.port;
+// const PORT = config.server.port;
 
 // 初始化数据库
 initializeDB()
