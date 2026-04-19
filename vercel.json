@@ -4,27 +4,12 @@
     {
       "src": "index.html",
       "use": "@vercel/static"
-    },
-    {
-      "src": "server/index.js",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "server/index.js"
-    },
-    {
       "src": "/(.*)",
       "dest": "index.html"
     }
-  ],
-  "env": {
-    "DB_HOST": "localhost",
-    "DB_USER": "root",
-    "DB_PASSWORD": "123456",
-    "DB_NAME": "cbti_db",
-    "DB_PORT": "3306"
-  }
+  ]
 }
