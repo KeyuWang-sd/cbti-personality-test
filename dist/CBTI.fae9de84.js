@@ -207,11 +207,11 @@
       });
     }
   }
-})({"kZJBH":[function(require,module,exports,__globalThis) {
+})({"dWFph":[function(require,module,exports,__globalThis) {
 var global = arguments[3];
 var HMR_HOST = null;
 var HMR_PORT = null;
-var HMR_SERVER_PORT = 63267;
+var HMR_SERVER_PORT = 56176;
 var HMR_SECURE = false;
 var HMR_ENV_HASH = "439701173a9199ea";
 var HMR_USE_SSE = false;
@@ -25010,7 +25010,12 @@ var _scoring = require("../../core/algorithms/scoring");
 var _personalityIcons = require("../data/personalityIcons");
 var _wechatShare = require("../utils/wechatShare");
 var _s = $RefreshSig$();
-const API_BASE = 'http://localhost:3003/api';
+// Supabase配置
+const SUPABASE_URL = 'https://gjlrqshqeikivymipkim.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_0LEbw-l8RWq2ogHmt_h1Ew_8gkqcT9q';
+// 初始化Supabase
+const { createClient } = window['supabase'];
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const TestPage = ()=>{
     _s();
     const [currentQuestionIndex, setCurrentQuestionIndex] = (0, _react.useState)(()=>{
@@ -25042,27 +25047,27 @@ const TestPage = ()=>{
         newAnswers[currentQuestionIndex] = answer;
         setAnswers(newAnswers);
     };
-    const submitToServer = async (result, numericalAnswers)=>{
+    const saveResultToSupabase = async (nickname, result)=>{
         try {
-            const response = await fetch(`${API_BASE}/submit`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    answers: numericalAnswers,
-                    scores: result.scores,
-                    personality: result.personality,
-                    dimensionResults: result.dimensionResults
-                })
-            });
-            if (response.ok) {
-                console.log("\u7ED3\u679C\u5DF2\u4E0A\u4F20\u5230\u4E91\u7AEF");
-                localStorage.removeItem('cbti_currentQuestion');
-                localStorage.removeItem('cbti_answers');
+            const { data, error } = await supabase.from("\u7ED3\u679C").insert({
+                nickname: nickname || "\u533F\u540D",
+                social: result.dimensionResults.S.direction === 'positive' ? "\u5916\u653E\u55A7\u56A3" : "\u72EC\u5904\u7F04\u9ED8",
+                study: result.dimensionResults.L.direction === 'positive' ? "\u6FC0\u8FDB\u5185\u5377" : "\u865A\u65E0\u6446\u70C2",
+                action: result.dimensionResults.D.direction === 'positive' ? "\u79E9\u5E8F\u81EA\u5F8B" : "\u6DF7\u6C8C\u62D6\u5EF6",
+                heart: result.dimensionResults.W.direction === 'positive' ? "\u73B0\u5B9E\u529F\u5229" : "\u611F\u6027\u5185\u8017",
+                personality: result.personality.code
+            }).select();
+            if (error) {
+                console.error("\u4FDD\u5B58\u5931\u8D25:", error);
+                return false;
             }
+            console.log("\u7ED3\u679C\u5DF2\u4FDD\u5B58\u5230Supabase:", data);
+            localStorage.removeItem('cbti_currentQuestion');
+            localStorage.removeItem('cbti_answers');
+            return true;
         } catch (error) {
-            console.error("\u4E0A\u4F20\u5931\u8D25:", error);
+            console.error("\u4FDD\u5B58\u5931\u8D25:", error);
+            return false;
         }
     };
     const handleNext = ()=>{
@@ -25083,7 +25088,6 @@ const TestPage = ()=>{
             const result = (0, _scoring.generateTestResult)(numericalAnswers);
             setTestResult(result);
             setTestCompleted(true);
-            submitToServer(result, numericalAnswers);
         }
     };
     const handlePrevious = ()=>{
@@ -25111,6 +25115,15 @@ const TestPage = ()=>{
         };
         return interpretations[dimension][direction];
     };
+    const [nickname, setNickname] = (0, _react.useState)('');
+    const [saveStatus, setSaveStatus] = (0, _react.useState)('idle');
+    const handleSave = async ()=>{
+        if (!testResult) return;
+        setSaveStatus('saving');
+        const success = await saveResultToSupabase(nickname, testResult);
+        setSaveStatus(success ? 'success' : 'error');
+        if (success) setTimeout(()=>setSaveStatus('idle'), 2000);
+    };
     if (testCompleted) return /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
         className: "test-result",
         children: /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25121,7 +25134,7 @@ const TestPage = ()=>{
                     children: "\u4F60\u7684\u4EBA\u683C\u7C7B\u578B\u662F:"
                 }, void 0, false, {
                     fileName: "src/frontend/pages/TestPage.tsx",
-                    lineNumber: 117,
+                    lineNumber: 141,
                     columnNumber: 11
                 }, undefined),
                 /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25135,7 +25148,7 @@ const TestPage = ()=>{
                                     children: testResult.personality.name
                                 }, void 0, false, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 120,
+                                    lineNumber: 144,
                                     columnNumber: 15
                                 }, undefined),
                                 /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("h3", {
@@ -25143,13 +25156,13 @@ const TestPage = ()=>{
                                     children: testResult.personality.code
                                 }, void 0, false, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 121,
+                                    lineNumber: 145,
                                     columnNumber: 15
                                 }, undefined)
                             ]
                         }, void 0, true, {
                             fileName: "src/frontend/pages/TestPage.tsx",
-                            lineNumber: 119,
+                            lineNumber: 143,
                             columnNumber: 13
                         }, undefined),
                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25160,12 +25173,12 @@ const TestPage = ()=>{
                                 }
                             }, void 0, false, {
                                 fileName: "src/frontend/pages/TestPage.tsx",
-                                lineNumber: 124,
+                                lineNumber: 148,
                                 columnNumber: 15
                             }, undefined)
                         }, void 0, false, {
                             fileName: "src/frontend/pages/TestPage.tsx",
-                            lineNumber: 123,
+                            lineNumber: 147,
                             columnNumber: 13
                         }, undefined),
                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
@@ -25173,7 +25186,7 @@ const TestPage = ()=>{
                             children: testResult.personality.description
                         }, void 0, false, {
                             fileName: "src/frontend/pages/TestPage.tsx",
-                            lineNumber: 126,
+                            lineNumber: 150,
                             columnNumber: 13
                         }, undefined),
                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25186,7 +25199,7 @@ const TestPage = ()=>{
                                             children: "\u793E\u4EA4\u7EF4\u5EA6"
                                         }, void 0, false, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 129,
+                                            lineNumber: 153,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
@@ -25196,7 +25209,7 @@ const TestPage = ()=>{
                                             ]
                                         }, void 0, true, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 130,
+                                            lineNumber: 154,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
@@ -25204,13 +25217,13 @@ const TestPage = ()=>{
                                             children: getDimensionInterpretation('S', testResult.dimensionResults.S.direction)
                                         }, void 0, false, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 131,
+                                            lineNumber: 155,
                                             columnNumber: 17
                                         }, undefined)
                                     ]
                                 }, void 0, true, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 128,
+                                    lineNumber: 152,
                                     columnNumber: 15
                                 }, undefined),
                                 /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25220,7 +25233,7 @@ const TestPage = ()=>{
                                             children: "\u5B66\u4E60\u7EF4\u5EA6"
                                         }, void 0, false, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 134,
+                                            lineNumber: 158,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
@@ -25230,7 +25243,7 @@ const TestPage = ()=>{
                                             ]
                                         }, void 0, true, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 135,
+                                            lineNumber: 159,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
@@ -25238,13 +25251,13 @@ const TestPage = ()=>{
                                             children: getDimensionInterpretation('L', testResult.dimensionResults.L.direction)
                                         }, void 0, false, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 136,
+                                            lineNumber: 160,
                                             columnNumber: 17
                                         }, undefined)
                                     ]
                                 }, void 0, true, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 133,
+                                    lineNumber: 157,
                                     columnNumber: 15
                                 }, undefined),
                                 /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25254,7 +25267,7 @@ const TestPage = ()=>{
                                             children: "\u884C\u4E8B\u7EF4\u5EA6"
                                         }, void 0, false, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 139,
+                                            lineNumber: 163,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
@@ -25264,7 +25277,7 @@ const TestPage = ()=>{
                                             ]
                                         }, void 0, true, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 140,
+                                            lineNumber: 164,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
@@ -25272,13 +25285,13 @@ const TestPage = ()=>{
                                             children: getDimensionInterpretation('D', testResult.dimensionResults.D.direction)
                                         }, void 0, false, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 141,
+                                            lineNumber: 165,
                                             columnNumber: 17
                                         }, undefined)
                                     ]
                                 }, void 0, true, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 138,
+                                    lineNumber: 162,
                                     columnNumber: 15
                                 }, undefined),
                                 /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25288,7 +25301,7 @@ const TestPage = ()=>{
                                             children: "\u5185\u5FC3\u7EF4\u5EA6"
                                         }, void 0, false, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 144,
+                                            lineNumber: 168,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
@@ -25298,7 +25311,7 @@ const TestPage = ()=>{
                                             ]
                                         }, void 0, true, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 145,
+                                            lineNumber: 169,
                                             columnNumber: 17
                                         }, undefined),
                                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
@@ -25306,19 +25319,49 @@ const TestPage = ()=>{
                                             children: getDimensionInterpretation('W', testResult.dimensionResults.W.direction)
                                         }, void 0, false, {
                                             fileName: "src/frontend/pages/TestPage.tsx",
-                                            lineNumber: 146,
+                                            lineNumber: 170,
                                             columnNumber: 17
                                         }, undefined)
                                     ]
                                 }, void 0, true, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 143,
+                                    lineNumber: 167,
                                     columnNumber: 15
                                 }, undefined)
                             ]
                         }, void 0, true, {
                             fileName: "src/frontend/pages/TestPage.tsx",
-                            lineNumber: 127,
+                            lineNumber: 151,
+                            columnNumber: 13
+                        }, undefined),
+                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                            className: "nickname-input",
+                            children: [
+                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("input", {
+                                    type: "text",
+                                    placeholder: "\u8BF7\u8F93\u5165\u6635\u79F0\uFF08\u53EF\u9009\uFF09",
+                                    value: nickname,
+                                    onChange: (e)=>setNickname(e.target.value),
+                                    className: "nickname-field"
+                                }, void 0, false, {
+                                    fileName: "src/frontend/pages/TestPage.tsx",
+                                    lineNumber: 174,
+                                    columnNumber: 15
+                                }, undefined),
+                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
+                                    className: `save-button ${saveStatus}`,
+                                    onClick: handleSave,
+                                    disabled: saveStatus === 'saving',
+                                    children: saveStatus === 'saving' ? "\u4FDD\u5B58\u4E2D..." : saveStatus === 'success' ? "\u4FDD\u5B58\u6210\u529F\uFF01" : saveStatus === 'error' ? "\u4FDD\u5B58\u5931\u8D25" : "\u4FDD\u5B58\u5230\u4E91\u7AEF"
+                                }, void 0, false, {
+                                    fileName: "src/frontend/pages/TestPage.tsx",
+                                    lineNumber: 181,
+                                    columnNumber: 15
+                                }, undefined)
+                            ]
+                        }, void 0, true, {
+                            fileName: "src/frontend/pages/TestPage.tsx",
+                            lineNumber: 173,
                             columnNumber: 13
                         }, undefined),
                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25330,7 +25373,7 @@ const TestPage = ()=>{
                                     children: "\u5206\u4EAB\u7ED9\u597D\u53CB"
                                 }, void 0, false, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 150,
+                                    lineNumber: 192,
                                     columnNumber: 15
                                 }, undefined),
                                 /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
@@ -25339,34 +25382,36 @@ const TestPage = ()=>{
                                         setTestCompleted(false);
                                         setCurrentQuestionIndex(0);
                                         setAnswers(Array((0, _questions.questions).length).fill(null));
+                                        setNickname('');
+                                        setSaveStatus('idle');
                                     },
                                     children: "\u91CD\u65B0\u6D4B\u8BD5"
                                 }, void 0, false, {
                                     fileName: "src/frontend/pages/TestPage.tsx",
-                                    lineNumber: 156,
+                                    lineNumber: 198,
                                     columnNumber: 15
                                 }, undefined)
                             ]
                         }, void 0, true, {
                             fileName: "src/frontend/pages/TestPage.tsx",
-                            lineNumber: 149,
+                            lineNumber: 191,
                             columnNumber: 13
                         }, undefined)
                     ]
                 }, void 0, true, {
                     fileName: "src/frontend/pages/TestPage.tsx",
-                    lineNumber: 118,
+                    lineNumber: 142,
                     columnNumber: 11
                 }, undefined)
             ]
         }, void 0, true, {
             fileName: "src/frontend/pages/TestPage.tsx",
-            lineNumber: 116,
+            lineNumber: 140,
             columnNumber: 9
         }, undefined)
     }, void 0, false, {
         fileName: "src/frontend/pages/TestPage.tsx",
-        lineNumber: 115,
+        lineNumber: 139,
         columnNumber: 7
     }, undefined);
     return /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25377,7 +25422,7 @@ const TestPage = ()=>{
                 children: "CBTI\u5F53\u4EE3\u5927\u5B66\u751F\u6C99\u96D5\u70ED\u6897\u4EBA\u683C\u6D4B\u8BD5"
             }, void 0, false, {
                 fileName: "src/frontend/pages/TestPage.tsx",
-                lineNumber: 175,
+                lineNumber: 219,
                 columnNumber: 7
             }, undefined),
             /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25390,7 +25435,7 @@ const TestPage = ()=>{
                         }
                     }, void 0, false, {
                         fileName: "src/frontend/pages/TestPage.tsx",
-                        lineNumber: 177,
+                        lineNumber: 221,
                         columnNumber: 9
                     }, undefined),
                     /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("span", {
@@ -25402,13 +25447,13 @@ const TestPage = ()=>{
                         ]
                     }, void 0, true, {
                         fileName: "src/frontend/pages/TestPage.tsx",
-                        lineNumber: 181,
+                        lineNumber: 225,
                         columnNumber: 9
                     }, undefined)
                 ]
             }, void 0, true, {
                 fileName: "src/frontend/pages/TestPage.tsx",
-                lineNumber: 176,
+                lineNumber: 220,
                 columnNumber: 7
             }, undefined),
             /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)((0, _questionCardDefault.default), {
@@ -25417,7 +25462,7 @@ const TestPage = ()=>{
                 onSelectAnswer: handleSelectAnswer
             }, void 0, false, {
                 fileName: "src/frontend/pages/TestPage.tsx",
-                lineNumber: 185,
+                lineNumber: 229,
                 columnNumber: 7
             }, undefined),
             /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25430,7 +25475,7 @@ const TestPage = ()=>{
                         children: "\u4E0A\u4E00\u9898"
                     }, void 0, false, {
                         fileName: "src/frontend/pages/TestPage.tsx",
-                        lineNumber: 191,
+                        lineNumber: 235,
                         columnNumber: 9
                     }, undefined),
                     /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
@@ -25439,23 +25484,23 @@ const TestPage = ()=>{
                         children: currentQuestionIndex === (0, _questions.questions).length - 1 ? "\u63D0\u4EA4" : "\u4E0B\u4E00\u9898"
                     }, void 0, false, {
                         fileName: "src/frontend/pages/TestPage.tsx",
-                        lineNumber: 198,
+                        lineNumber: 242,
                         columnNumber: 9
                     }, undefined)
                 ]
             }, void 0, true, {
                 fileName: "src/frontend/pages/TestPage.tsx",
-                lineNumber: 190,
+                lineNumber: 234,
                 columnNumber: 7
             }, undefined)
         ]
     }, void 0, true, {
         fileName: "src/frontend/pages/TestPage.tsx",
-        lineNumber: 174,
+        lineNumber: 218,
         columnNumber: 5
     }, undefined);
 };
-_s(TestPage, "KcZO16/KhlIvLLI/OGVCee/90w4=");
+_s(TestPage, "OU7ZXUjMMKoYBa7sdmnrjRwEKiM=");
 _c = TestPage;
 exports.default = TestPage;
 var _c;
@@ -29176,6 +29221,6 @@ function fallbackCopyTextToClipboard(text) {
     }
 }
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}]},["kZJBH","jIhU4"], "jIhU4", "parcelRequiree626", {}, null, null, "http://localhost:63267")
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}]},["dWFph","jIhU4"], "jIhU4", "parcelRequiree626", {}, null, null, "http://localhost:56176")
 
 //# sourceMappingURL=CBTI.fae9de84.js.map

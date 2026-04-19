@@ -5,7 +5,13 @@ import { generateTestResult } from '../../core/algorithms/scoring';
 import { personalityIcons } from '../data/personalityIcons';
 import { handleShareClick } from '../utils/wechatShare';
 
-const API_BASE = 'http://localhost:3003/api';
+// Supabase配置
+const SUPABASE_URL = 'https://gjlrqshqeikivymipkim.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_0LEbw-l8RWq2ogHmt_h1Ew_8gkqcT9q';
+
+// 初始化Supabase
+const { createClient } = window['supabase'];
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const TestPage: React.FC = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(() => {
@@ -36,28 +42,32 @@ const TestPage: React.FC = () => {
     setAnswers(newAnswers);
   };
 
-  const submitToServer = async (result: any, numericalAnswers: (1 | 0 | -1)[]) => {
+  const saveResultToSupabase = async (nickname: string, result: any) => {
     try {
-      const response = await fetch(`${API_BASE}/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          answers: numericalAnswers,
-          scores: result.scores,
-          personality: result.personality,
-          dimensionResults: result.dimensionResults
+      const { data, error } = await supabase
+        .from('结果')
+        .insert({
+          nickname: nickname || '匿名',
+          social: result.dimensionResults.S.direction === 'positive' ? '外放喧嚣' : '独处缄默',
+          study: result.dimensionResults.L.direction === 'positive' ? '激进内卷' : '虚无摆烂',
+          action: result.dimensionResults.D.direction === 'positive' ? '秩序自律' : '混沌拖延',
+          heart: result.dimensionResults.W.direction === 'positive' ? '现实功利' : '感性内耗',
+          personality: result.personality.code
         })
-      });
+        .select();
 
-      if (response.ok) {
-        console.log('结果已上传到云端');
-        localStorage.removeItem('cbti_currentQuestion');
-        localStorage.removeItem('cbti_answers');
+      if (error) {
+        console.error('保存失败:', error);
+        return false;
       }
+
+      console.log('结果已保存到Supabase:', data);
+      localStorage.removeItem('cbti_currentQuestion');
+      localStorage.removeItem('cbti_answers');
+      return true;
     } catch (error) {
-      console.error('上传失败:', error);
+      console.error('保存失败:', error);
+      return false;
     }
   };
 
@@ -77,7 +87,6 @@ const TestPage: React.FC = () => {
       const result = generateTestResult(numericalAnswers as (1 | 0 | -1)[]);
       setTestResult(result);
       setTestCompleted(true);
-      submitToServer(result, numericalAnswers);
     }
   };
 
@@ -108,6 +117,21 @@ const TestPage: React.FC = () => {
       }
     };
     return interpretations[dimension][direction];
+  };
+
+  const [nickname, setNickname] = useState('');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+
+  const handleSave = async () => {
+    if (!testResult) return;
+    
+    setSaveStatus('saving');
+    const success = await saveResultToSupabase(nickname, testResult);
+    setSaveStatus(success ? 'success' : 'error');
+    
+    if (success) {
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    }
   };
 
   if (testCompleted) {
@@ -146,6 +170,24 @@ const TestPage: React.FC = () => {
                 <p className="dimension-interpretation">{getDimensionInterpretation('W', testResult.dimensionResults.W.direction)}</p>
               </div>
             </div>
+            <div className="nickname-input">
+              <input
+                type="text"
+                placeholder="请输入昵称（可选）"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                className="nickname-field"
+              />
+              <button
+                className={`save-button ${saveStatus}`}
+                onClick={handleSave}
+                disabled={saveStatus === 'saving'}
+              >
+                {saveStatus === 'saving' ? '保存中...' : 
+                 saveStatus === 'success' ? '保存成功！' : 
+                 saveStatus === 'error' ? '保存失败' : '保存到云端'}
+              </button>
+            </div>
             <div className="result-actions">
               <button 
                 className="share-button"
@@ -159,6 +201,8 @@ const TestPage: React.FC = () => {
                   setTestCompleted(false);
                   setCurrentQuestionIndex(0);
                   setAnswers(Array(questions.length).fill(null));
+                  setNickname('');
+                  setSaveStatus('idle');
                 }}
               >
                 重新测试
