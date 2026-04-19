@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>人格榜单统计 - CBTI大学生校园人格测试</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+      font-size: 2.5rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .stats-summary {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .total-count {
+      text-align: center;
+      font-size: 3rem;
+      color: #667eea;
+      font-weight: bold;
+    }
+
+    .total-label {
+      text-align: center;
+      color: #666;
+      margin-top: 10px;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+
+    @media (max-width: 900px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .section-card {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      color: #333;
+      margin-bottom: 20px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .chart-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 300px;
+    }
+
+    .pie-chart {
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      position: relative;
+      background: conic-gradient(
+        #FF6B6B 0deg 30deg,
+        #4ECDC4 30deg 60deg,
+        #45B7D1 60deg 90deg,
+        #96CEB4 90deg 120deg,
+        #FFEAA7 120deg 150deg,
+        #DDA0DD 150deg 180deg,
+        #98D8C8 180deg 210deg,
+        #F7DC6F 210deg 240deg,
+        #BB8FCE 240deg 270deg,
+        #85C1E9 270deg 300deg,
+        #F8B500 300deg 330deg,
+        #2ECC71 330deg 360deg
+      );
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .pie-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 120px;
+      height: 120px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .pie-center-number {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .pie-center-label {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    .ranking-list {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .ranking-item {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 12px;
+      transition: transform 0.2s;
+    }
+
+    .ranking-item:hover {
+      transform: translateX(5px);
+    }
+
+    .rank-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+      margin-right: 15px;
+    }
+
+    .rank-1 {
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      color: white;
+    }
+
+    .rank-2 {
+      background: linear-gradient(135deg, #C0C0C0, #A9A9A9);
+      color: white;
+    }
+
+    .rank-3 {
+      background: linear-gradient(135deg, #CD7F32, #8B4513);
+      color: white;
+    }
+
+    .rank-default {
+      background: #667eea;
+      color: white;
+    }
+
+    .personality-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 10px;
+      margin-right: 15px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.5rem;
+    }
+
+    .personality-info {
+      flex: 1;
+    }
+
+    .personality-name {
+      font-weight: bold;
+      color: #333;
+      font-size: 1.1rem;
+    }
+
+    .personality-code {
+      color: #667eea;
+      font-size: 0.9rem;
+    }
+
+    .personality-count {
+      font-weight: bold;
+      color: #667eea;
+      font-size: 1.2rem;
+    }
+
+    .personality-percent {
+      color: #999;
+      font-size: 0.9rem;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 50px;
+      color: #666;
+    }
+
+    .error {
+      text-align: center;
+      padding: 50px;
+      color: #ff6b6b;
+    }
+
+    .back-btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: white;
+      color: #667eea;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: bold;
+      margin-bottom: 20px;
+      transition: transform 0.2s;
+    }
+
+    .back-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      font-size: 0.85rem;
+      color: #333;
+    }
+
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      margin-right: 8px;
+    }
+
+    .personality-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .personality-card {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s;
+    }
+
+    .personality-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .personality-emoji {
+      font-size: 3rem;
+      margin-bottom: 10px;
+    }
+
+    .personality-card-name {
+      font-weight: bold;
+      color: #333;
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+    }
+
+    .personality-card-code {
+      color: #667eea;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+
+    .personality-card-count {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .personality-card-percent {
+      color: #999;
+      font-size: 0.85rem;
+    }
+
+    .easter-egg-badge {
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      color: white;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 0.7rem;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-btn">← 返回测试</a>
+    <h1>🎭 人格榜单统计 🎭</h1>
+    
+    <div class="stats-summary">
+      <div class="total-count" id="totalCount">加载中...</div>
+      <div class="total-label">已有多少小伙伴测出自己的人格</div>
+    </div>
+
+    <div class="content-grid">
+      <div class="section-card">
+        <h2 class="section-title">📊 18人格分布图</h2>
+        <div class="chart-container">
+          <div class="pie-chart" id="pieChart">
+            <div class="pie-center">
+              <span class="pie-center-number" id="totalPersonality">0</span>
+              <span class="pie-center-label">种人格</span>
+            </div>
+          </div>
+        </div>
+        <div class="legend" id="legend"></div>
+      </div>
+
+      <div class="section-card">
+        <h2 class="section-title">🏆 热门人格排行</h2>
+        <div class="ranking-list" id="rankingList">
+          <div class="loading">加载中...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card" style="margin-top: 30px;">
+      <h2 class="section-title">👥 全人格图鉴</h2>
+      <div class="personality-grid" id="personalityGrid">
+        <div class="loading">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const personalityEmojis = {
+      'IMSB': '😰',
+      'BOSS': '🎭',
+      'DDLS': '⏰',
+      'MONK': '🧘',
+      'OJBK': '😌',
+      'POOR': '💰',
+      'IMFW': '🛏️',
+      'SOLO': '🌙',
+      'MUM': '👔',
+      'FAKE': '🎭',
+      'CTRL': '🕹️',
+      'WOC': '🎉',
+      'MALO': '🤝',
+      'HHHH': '😂',
+      'LOVE-R': '💕',
+      'GOGO': '🚶',
+      'ZZZZ': '💤',
+      'DRUNK': '🍺'
+    };
+
+    const personalityColors = {
+      'IMSB': '#FF6B6B',
+      'BOSS': '#4ECDC4',
+      'DDLS': '#45B7D1',
+      'MONK': '#96CEB4',
+      'OJBK': '#FFEAA7',
+      'POOR': '#DDA0DD',
+      'IMFW': '#98D8C8',
+      'SOLO': '#F7DC6F',
+      'MUM': '#BB8FCE',
+      'FAKE': '#85C1E9',
+      'CTRL': '#F8B500',
+      'WOC': '#2ECC71',
+      'MALO': '#FF6B6B',
+      'HHHH': '#4ECDC4',
+      'LOVE-R': '#45B7D1',
+      'GOGO': '#96CEB4',
+      'ZZZZ': '#FFEAA7',
+      'DRUNK': '#DDA0DD'
+    };
+
+    async function loadStatistics() {
+      try {
+        const response = await fetch('/api/statistics');
+        const result = await response.json();
+        
+        if (result.success) {
+          const { totalResults, personalityCounts } = result.data;
+          
+          document.getElementById('totalCount').textContent = totalResults;
+          document.getElementById('totalPersonality').textContent = personalityCounts.length;
+          
+          renderRanking(personalityCounts, totalResults);
+          renderPersonalityGrid(personalityCounts, totalResults);
+          renderLegend(personalityCounts);
+        }
+      } catch (error) {
+        console.error('加载统计数据失败:', error);
+        document.getElementById('totalCount').textContent = '加载失败';
+      }
+    }
+
+    function renderRanking(personalityCounts, total) {
+      const rankingList = document.getElementById('rankingList');
+      
+      if (personalityCounts.length === 0) {
+        rankingList.innerHTML = '<div class="error">暂无数据</div>';
+        return;
+      }
+      
+      rankingList.innerHTML = personalityCounts.map((item, index) => {
+        const rankClass = index < 3 ? `rank-${index + 1}` : 'rank-default';
+        const percent = total > 0 ? ((item.count / total) * 100).toFixed(1) : 0;
+        const emoji = personalityEmojis[item.code] || '👤';
+        const easterEggBadge = item.isEasterEgg ? '<span class="easter-egg-badge">彩蛋</span>' : '';
+        
+        return `
+          <div class="ranking-item">
+            <div class="rank-badge ${rankClass}">${index + 1}</div>
+            <div class="personality-avatar" style="background: ${personalityColors[item.code] || '#667eea'}20; color: ${personalityColors[item.code] || '#667eea'}">
+              ${emoji}
+            </div>
+            <div class="personality-info">
+              <div class="personality-name">${item.name} ${easterEggBadge}</div>
+              <div class="personality-code">${item.code}</div>
+            </div>
+            <div>
+              <div class="personality-count">${item.count}</div>
+              <div class="personality-percent">${percent}%</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderPersonalityGrid(personalityCounts, total) {
+      const grid = document.getElementById('personalityGrid');
+      const countMap = {};
+      
+      personalityCounts.forEach(item => {
+        countMap[item.code] = item;
+      });
+      
+      const allPersonalities = [
+        { code: 'IMSB', name: '内耗卷王', isEasterEgg: false },
+        { code: 'BOSS', name: '卷神傀儡', isEasterEgg: false },
+        { code: 'DDLS', name: '死线战神', isEasterEgg: false },
+        { code: 'MONK', name: '静默阴卷', isEasterEgg: false },
+        { code: 'OJBK', name: '佛系旁观', isEasterEgg: false },
+        { code: 'POOR', name: '遁世搞钱人', isEasterEgg: false },
+        { code: 'IMFW', name: '宿舍废人', isEasterEgg: false },
+        { code: 'SOLO', name: 'emo孤人', isEasterEgg: false },
+        { code: 'MUM', name: '社团霸总', isEasterEgg: false },
+        { code: 'FAKE', name: '表面人精', isEasterEgg: false },
+        { code: 'CTRL', name: '社交卷狗', isEasterEgg: false },
+        { code: 'WOC', name: '狂欢内耗体', isEasterEgg: false },
+        { code: 'MALO', name: '人情世故哥', isEasterEgg: false },
+        { code: 'HHHH', name: '快乐乐子人', isEasterEgg: false },
+        { code: 'LOVE-R', name: '恋爱脑神', isEasterEgg: false },
+        { code: 'GOGO', name: '人间摆客', isEasterEgg: false },
+        { code: 'ZZZZ', name: '装死选手', isEasterEgg: true },
+        { code: 'DRUNK', name: '喝酒烂人', isEasterEgg: true }
+      ];
+      
+      grid.innerHTML = allPersonalities.map(p => {
+        const data = countMap[p.code];
+        const count = data ? data.count : 0;
+        const percent = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+        const emoji = personalityEmojis[p.code] || '👤';
+        const easterEggBadge = p.isEasterEgg ? '<span class="easter-egg-badge">彩蛋</span>' : '';
+        
+        return `
+          <div class="personality-card">
+            <div class="personality-emoji">${emoji}</div>
+            <div class="personality-card-name">${p.name} ${easterEggBadge}</div>
+            <div class="personality-card-code">${p.code}</div>
+            <div class="personality-card-count">${count}</div>
+            <div class="personality-card-percent">${percent}%</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderLegend(personalityCounts) {
+      const legend = document.getElementById('legend');
+      
+      const allPersonalities = [
+        { code: 'IMSB', name: '内耗卷王' },
+        { code: 'BOSS', name: '卷神傀儡' },
+        { code: 'DDLS', name: '死线战神' },
+        { code: 'MONK', name: '静默阴卷' },
+        { code: 'OJBK', name: '佛系旁观' },
+        { code: 'POOR', name: '遁世搞钱人' },
+        { code: 'IMFW', name: '宿舍废人' },
+        { code: 'SOLO', name: 'emo孤人' },
+        { code: 'MUM', name: '社团霸总' },
+        { code: 'FAKE', name: '表面人精' },
+        { code: 'CTRL', name: '社交卷狗' },
+        { code: 'WOC', name: '狂欢内耗体' },
+        { code: 'MALO', name: '人情世故哥' },
+        { code: 'HHHH', name: '快乐乐子人' },
+        { code: 'LOVE-R', name: '恋爱脑神' },
+        { code: 'GOGO', name: '人间摆客' },
+        { code: 'ZZZZ', name: '装死选手' },
+        { code: 'DRUNK', name: '喝酒烂人' }
+      ];
+      
+      legend.innerHTML = allPersonalities.map(p => {
+        const color = personalityColors[p.code] || '#667eea';
+        return `
+          <div class="legend-item">
+            <div class="legend-color" style="background: ${color}"></div>
+            <span>${p.name}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    loadStatistics();
+  </script>
+</body>
+</html>

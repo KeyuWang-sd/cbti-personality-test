@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理员后台 - CBTI大学生校园人格测试</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+    }
+
+    .login-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .login-card {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-title {
+      text-align: center;
+      font-size: 1.8rem;
+      color: #333;
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .login-btn:hover {
+      transform: scale(1.02);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .error-message {
+      color: #ff6b6b;
+      text-align: center;
+      margin-top: 15px;
+      font-size: 0.9rem;
+    }
+
+    .dashboard {
+      display: none;
+    }
+
+    .dashboard.active {
+      display: block;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px 40px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .username {
+      font-size: 0.9rem;
+    }
+
+    .logout-btn {
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .logout-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .content {
+      padding: 30px 40px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label {
+      color: #666;
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+
+    .section-card {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      font-size: 1.2rem;
+      color: #333;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    th {
+      background: #f8f9fa;
+      font-weight: bold;
+      color: #333;
+    }
+
+    tr:hover {
+      background: #f8f9fa;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .pagination-btn {
+      padding: 8px 16px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .pagination-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .pagination-info {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .personality-tag {
+      display: inline-block;
+      padding: 4px 10px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 15px;
+      font-size: 0.8rem;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 50px;
+      color: #666;
+    }
+
+    .error {
+      text-align: center;
+      padding: 50px;
+      color: #ff6b6b;
+    }
+
+    .back-link {
+      display: inline-block;
+      padding: 10px 20px;
+      color: white;
+      text-decoration: none;
+      margin-bottom: 20px;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container" id="loginContainer">
+    <div class="login-card">
+      <h1 class="login-title">管理员登录</h1>
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label">用户名</label>
+          <input type="text" class="form-input" id="username" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">密码</label>
+          <input type="password" class="form-input" id="password" required>
+        </div>
+        <button type="submit" class="login-btn" id="loginBtn">登录</button>
+        <div class="error-message" id="errorMessage"></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="dashboard" id="dashboard">
+    <div class="header">
+      <a href="/" class="back-link">← 返回测试</a>
+      <div class="header-title">CBTI 管理后台</div>
+      <div class="header-right">
+        <span class="username" id="usernameDisplay"></span>
+        <button class="logout-btn" id="logoutBtn">退出登录</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="totalResults">0</div>
+          <div class="stat-label">总测试人数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="personalityTypes">0</div>
+          <div class="stat-label">人格类型数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="avgS">0</div>
+          <div class="stat-label">平均社交维度</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="avgL">0</div>
+          <div class="stat-label">平均学习维度</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="avgD">0</div>
+          <div class="stat-label">平均行事维度</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="avgW">0</div>
+          <div class="stat-label">平均内心维度</div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <h2 class="section-title">📊 人格分布统计</h2>
+        <div class="table-container">
+          <table id="personalityTable">
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>人格名称</th>
+                <th>英文缩写</th>
+                <th>测试人数</th>
+                <th>占比</th>
+              </tr>
+            </thead>
+            <tbody id="personalityTableBody">
+              <tr><td colspan="5" class="loading">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <h2 class="section-title">📋 测试记录列表</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>人格类型</th>
+                <th>社交S</th>
+                <th>学习L</th>
+                <th>行事D</th>
+                <th>内心W</th>
+                <th>测试时间</th>
+              </tr>
+            </thead>
+            <tbody id="resultsTableBody">
+              <tr><td colspan="7" class="loading">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <button class="pagination-btn" id="prevBtn">上一页</button>
+          <span class="pagination-info" id="pageInfo">第 1 页</span>
+          <button class="pagination-btn" id="nextBtn">下一页</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let token = localStorage.getItem('adminToken');
+    let currentPage = 1;
+    let totalPages = 1;
+
+    const loginContainer = document.getElementById('loginContainer');
+    const dashboard = document.getElementById('dashboard');
+    const loginForm = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const errorMessage = document.getElementById('errorMessage');
+
+    if (token) {
+      showDashboard();
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      
+      loginBtn.disabled = true;
+      loginBtn.textContent = '登录中...';
+      
+      try {
+        const response = await fetch('/admin/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          token = result.data.token;
+          localStorage.setItem('adminToken', token);
+          localStorage.setItem('adminUsername', result.data.username);
+          showDashboard();
+        } else {
+          errorMessage.textContent = result.message || '登录失败';
+        }
+      } catch (error) {
+        errorMessage.textContent = '网络错误，请重试';
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = '登录';
+      }
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      token = null;
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminUsername');
+      loginContainer.style.display = 'flex';
+      dashboard.classList.remove('active');
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        loadResults();
+      }
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        loadResults();
+      }
+    });
+
+    function showDashboard() {
+      loginContainer.style.display = 'none';
+      dashboard.classList.add('active');
+      document.getElementById('usernameDisplay').textContent = localStorage.getItem('adminUsername') || 'Admin';
+      loadStatistics();
+      loadResults();
+    }
+
+    async function loadStatistics() {
+      try {
+        const response = await fetch('/admin/statistics', {
+          headers: {
+            'Authorization': token
+          }
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          const { totalResults, personalityCounts, dimensionAverages } = result.data;
+          
+          document.getElementById('totalResults').textContent = totalResults;
+          document.getElementById('personalityTypes').textContent = personalityCounts.length;
+          document.getElementById('avgS').textContent = dimensionAverages.avgS ? dimensionAverages.avgS.toFixed(1) : '0';
+          document.getElementById('avgL').textContent = dimensionAverages.avgL ? dimensionAverages.avgL.toFixed(1) : '0';
+          document.getElementById('avgD').textContent = dimensionAverages.avgD ? dimensionAverages.avgD.toFixed(1) : '0';
+          document.getElementById('avgW').textContent = dimensionAverages.avgW ? dimensionAverages.avgW.toFixed(1) : '0';
+          
+          renderPersonalityTable(personalityCounts, totalResults);
+        }
+      } catch (error) {
+        console.error('加载统计数据失败:', error);
+      }
+    }
+
+    async function loadResults() {
+      try {
+        const response = await fetch(`/admin/results?page=${currentPage}&limit=20`, {
+          headers: {
+            'Authorization': token
+          }
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          const { results, pagination } = result.data;
+          totalPages = pagination.pages;
+          document.getElementById('pageInfo').textContent = `第 ${currentPage} / ${totalPages} 页`;
+          document.getElementById('prevBtn').disabled = currentPage <= 1;
+          document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+          
+          renderResultsTable(results);
+        }
+      } catch (error) {
+        console.error('加载结果列表失败:', error);
+      }
+    }
+
+    function renderPersonalityTable(personalityCounts, total) {
+      const tbody = document.getElementById('personalityTableBody');
+      
+      if (personalityCounts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="loading">暂无数据</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = personalityCounts.map((item, index) => {
+        const percent = total > 0 ? ((item.count / total) * 100).toFixed(1) : '0';
+        return `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${item.name}</td>
+            <td>${item.code}</td>
+            <td>${item.count}</td>
+            <td>${percent}%</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderResultsTable(results) {
+      const tbody = document.getElementById('resultsTableBody');
+      
+      if (results.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">暂无数据</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = results.map((result, index) => {
+        const date = new Date(result.createdAt).toLocaleString('zh-CN');
+        return `
+          <tr>
+            <td>${(currentPage - 1) * 20 + index + 1}</td>
+            <td><span class="personality-tag">${result.personality.name}</span></td>
+            <td>${result.scores.S}</td>
+            <td>${result.scores.L}</td>
+            <td>${result.scores.D}</td>
+            <td>${result.scores.W}</td>
+            <td>${date}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+  </script>
+</body>
+</html>

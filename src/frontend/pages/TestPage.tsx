@@ -1,0 +1,209 @@
+import React, { useState, useEffect } from 'react';
+import QuestionCard from '../components/QuestionCard';
+import { questions } from '../data/questions';
+import { generateTestResult } from '../../core/algorithms/scoring';
+import { personalityIcons } from '../data/personalityIcons';
+import { handleShareClick } from '../utils/wechatShare';
+
+const API_BASE = 'http://localhost:3003/api';
+
+const TestPage: React.FC = () => {
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(() => {
+    const saved = localStorage.getItem('cbti_currentQuestion');
+    return saved ? parseInt(saved) : 0;
+  });
+  const [answers, setAnswers] = useState<('A' | 'B' | 'C' | null)[]>(() => {
+    const saved = localStorage.getItem('cbti_answers');
+    return saved ? JSON.parse(saved) : Array(questions.length).fill(null);
+  });
+  const [testCompleted, setTestCompleted] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
+
+  useEffect(() => {
+    localStorage.setItem('cbti_currentQuestion', String(currentQuestionIndex));
+  }, [currentQuestionIndex]);
+
+  useEffect(() => {
+    localStorage.setItem('cbti_answers', JSON.stringify(answers));
+  }, [answers]);
+
+  const currentQuestion = questions[currentQuestionIndex];
+  const selectedAnswer = answers[currentQuestionIndex];
+
+  const handleSelectAnswer = (answer: 'A' | 'B' | 'C') => {
+    const newAnswers = [...answers];
+    newAnswers[currentQuestionIndex] = answer;
+    setAnswers(newAnswers);
+  };
+
+  const submitToServer = async (result: any, numericalAnswers: (1 | 0 | -1)[]) => {
+    try {
+      const response = await fetch(`${API_BASE}/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          answers: numericalAnswers,
+          scores: result.scores,
+          personality: result.personality,
+          dimensionResults: result.dimensionResults
+        })
+      });
+
+      if (response.ok) {
+        console.log('结果已上传到云端');
+        localStorage.removeItem('cbti_currentQuestion');
+        localStorage.removeItem('cbti_answers');
+      }
+    } catch (error) {
+      console.error('上传失败:', error);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      const numericalAnswers = answers.map(answer => {
+        switch (answer) {
+          case 'A': return 1;
+          case 'C': return 0;
+          case 'B': return -1;
+          default: return 0;
+        }
+      });
+
+      const result = generateTestResult(numericalAnswers as (1 | 0 | -1)[]);
+      setTestResult(result);
+      setTestCompleted(true);
+      submitToServer(result, numericalAnswers);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+
+  // 获取维度详细解读
+  const getDimensionInterpretation = (dimension: 'S' | 'L' | 'D' | 'W', direction: 'positive' | 'negative') => {
+    const interpretations = {
+      S: {
+        positive: '你是一个外向开朗的社交达人，喜欢与人交流，善于建立人际关系。在群体中你总是能自然地融入，甚至成为焦点人物。你享受社交带来的快乐，通过与他人的互动获得能量。无论是陌生场合还是熟悉的环境，你都能游刃有余地应对，这种社交能力让你在校园生活中如鱼得水。',
+        negative: '你更倾向于独处，享受安静的个人空间。在社交场合中，你可能会感到疲惫，更愿意与少数亲密朋友深入交流。你不是不喜欢社交，而是更注重质量而非数量。你的内心世界丰富，善于自我反思，这种特质让你在需要专注和深度思考的事情上表现出色。'
+      },
+      L: {
+        positive: '你对学习充满热情，追求卓越和自我提升。你有明确的目标和计划，愿意为了理想付出努力。在学业上你精益求精，不仅满足于课堂知识，还会主动探索更多领域。这种积极进取的态度让你在竞争中脱颖而出，成为他人眼中的榜样。',
+        negative: '你对学习保持着一种轻松的态度，更注重过程而非结果。你相信学习应该是一种乐趣，而不是压力。你善于在学习和生活之间找到平衡，不会为了成绩过度焦虑。这种心态让你在面对挑战时更加从容，也让你的大学生活更加丰富多彩。'
+      },
+      D: {
+        positive: '你是一个有条理、有计划的人，做事认真负责，追求效率和质量。你善于规划时间，制定目标，并严格执行。在团队中，你往往是可靠的领导者或执行者，能够有条不紊地完成任务。这种自律和责任感让你在各种场合都能赢得他人的信任。',
+        negative: '你更倾向于随遇而安，享受灵活自由的生活方式。你不喜欢被严格的计划束缚，善于随机应变，在变化中找到乐趣。虽然有时会显得有些拖延，但你总能在最后时刻完成任务，并且常常能带来意想不到的创意。这种随性的态度让你在面对压力时更加从容。'
+      },
+      W: {
+        positive: '你是一个理性务实的人，善于分析问题，做出明智的决策。你关注现实，注重实际效果，不会被情绪或幻想所左右。在面对困难时，你能够保持冷静，找到解决问题的方法。这种理性思维让你在学习和生活中都能做出正确的选择。',
+        negative: '你是一个感性细腻的人，注重内心感受，富有同理心和创造力。你善于理解他人的情感，也能敏锐地感知自己的情绪变化。虽然有时会有些多愁善感，但你的情感丰富让你在艺术、文学等领域有独特的见解。这种感性特质让你的生活更加丰富多彩，也让你成为一个温暖的朋友。'
+      }
+    };
+    return interpretations[dimension][direction];
+  };
+
+  if (testCompleted) {
+    return (
+      <div className="test-result">
+        <div className="result-container">
+          <h1 className="result-title">你的人格类型是:</h1>
+          <div className="personality-card">
+            <div className="personality-header">
+              <h2 className="personality-name">{testResult.personality.name}</h2>
+              <h3 className="personality-code">{testResult.personality.code}</h3>
+            </div>
+            <div className="personality-icon">
+              <div dangerouslySetInnerHTML={{ __html: personalityIcons[testResult.personality.code as keyof typeof personalityIcons] }} />
+            </div>
+            <p className="personality-description">{testResult.personality.description}</p>
+            <div className="dimension-results">
+              <div className="dimension">
+                <h3>社交维度</h3>
+                <p>倾向: {testResult.dimensionResults.S.direction === 'positive' ? '外放喧嚣' : '独处缄默'}</p>
+                <p className="dimension-interpretation">{getDimensionInterpretation('S', testResult.dimensionResults.S.direction)}</p>
+              </div>
+              <div className="dimension">
+                <h3>学习维度</h3>
+                <p>倾向: {testResult.dimensionResults.L.direction === 'positive' ? '激进内卷' : '虚无摆烂'}</p>
+                <p className="dimension-interpretation">{getDimensionInterpretation('L', testResult.dimensionResults.L.direction)}</p>
+              </div>
+              <div className="dimension">
+                <h3>行事维度</h3>
+                <p>倾向: {testResult.dimensionResults.D.direction === 'positive' ? '秩序自律' : '混沌拖延'}</p>
+                <p className="dimension-interpretation">{getDimensionInterpretation('D', testResult.dimensionResults.D.direction)}</p>
+              </div>
+              <div className="dimension">
+                <h3>内心维度</h3>
+                <p>倾向: {testResult.dimensionResults.W.direction === 'positive' ? '现实功利' : '感性内耗'}</p>
+                <p className="dimension-interpretation">{getDimensionInterpretation('W', testResult.dimensionResults.W.direction)}</p>
+              </div>
+            </div>
+            <div className="result-actions">
+              <button 
+                className="share-button"
+                onClick={() => handleShareClick(testResult.personality.name, testResult.personality.code)}
+              >
+                分享给好友
+              </button>
+              <button 
+                className="restart-button"
+                onClick={() => {
+                  setTestCompleted(false);
+                  setCurrentQuestionIndex(0);
+                  setAnswers(Array(questions.length).fill(null));
+                }}
+              >
+                重新测试
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="test-page">
+      <h1 className="test-title">CBTI当代大学生沙雕热梗人格测试</h1>
+      <div className="progress">
+        <div
+          className="progress-bar"
+          style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
+        ></div>
+        <span className="progress-text">
+          {currentQuestionIndex + 1} / {questions.length}
+        </span>
+      </div>
+      <QuestionCard
+        question={currentQuestion}
+        selectedAnswer={selectedAnswer}
+        onSelectAnswer={handleSelectAnswer}
+      />
+      <div className="navigation">
+        <button
+          className="nav-button previous"
+          onClick={handlePrevious}
+          disabled={currentQuestionIndex === 0}
+        >
+          上一题
+        </button>
+        <button
+          className="nav-button next"
+          onClick={handleNext}
+        >
+          {currentQuestionIndex === questions.length - 1 ? '提交' : '下一题'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default TestPage;
