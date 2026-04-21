@@ -5,8 +5,8 @@ export const handleShareClick = (personalityName: string, personalityCode: strin
   
   if (isWeChat) {
     // 在微信中使用原生分享
-    if (typeof window.WeixinJSBridge !== 'undefined') {
-      window.WeixinJSBridge.invoke('shareTimeline', {
+    if (typeof (window as any).WeixinJSBridge !== 'undefined') {
+      (window as any).WeixinJSBridge.invoke('shareTimeline', {
         title: `我是${personalityName}(${personalityCode})`,
         link: window.location.href,
         imgUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cartoon%20college%20student%20personality%20test%20illustration&image_size=square_hd'
@@ -14,7 +14,7 @@ export const handleShareClick = (personalityName: string, personalityCode: strin
     }
   } else {
     // 在其他浏览器中使用剪贴板复制
-    const shareText = `我刚刚做了CBTI当代大学生沙雕热梗人格测试，结果是${personalityName}(${personalityCode})！快来测测你是什么人格吧！\n链接：${window.location.href}`;
+    const shareText = `我刚刚做了CBTI-大学生人格测试(jxau版)，结果是${personalityName}(${personalityCode})！快来测测你是什么人格吧！\n链接：${window.location.href}`;
     
     // 尝试使用 Clipboard API
     if (navigator.clipboard && window.isSecureContext) {

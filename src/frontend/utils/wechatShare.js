@@ -40,7 +40,7 @@ function setupGeneralShare(title, description, url) {
 
 // 分享按钮点击事件
 export function handleShareClick(personalityName, personalityCode) {
-  const title = 'CBTI大学生校园人格测试';
+  const title = 'CBTI-大学生人格测试(jxau版)';
   const description = `我的CBTI人格是${personalityName}(${personalityCode})，快来测试你的人格类型吧！`;
   const imageUrl = 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cartoon%20college%20student%20personality%20test%20illustration&image_size=square_hd';
   const url = window.location.href;

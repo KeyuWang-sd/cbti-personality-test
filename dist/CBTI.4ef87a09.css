@@ -35,6 +35,15 @@ body {
   font-weight: bold;
 }
 
+.cbti-logo {
+  border-radius: 10px;
+  max-width: 150px;
+  height: auto;
+  margin: 0 auto 30px;
+  display: block;
+  box-shadow: 0 4px 8px #0000001a;
+}
+
 .progress {
   background-color: #e9ecef;
   border-radius: 10px;

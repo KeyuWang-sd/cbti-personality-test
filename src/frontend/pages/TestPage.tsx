@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import QuestionCard from '../components/QuestionCard';
 import { questions } from '../data/questions';
 import { generateTestResult } from '../../core/algorithms/scoring';
 import { personalityIcons } from '../data/personalityIcons';
 import { handleShareClick } from '../utils/wechatShare';
 
+// 使用相对于 dist 根目录的路径，确保部署后能找到 logo.jpg
+const logoImg = './logo.jpg';
+
 // Supabase配置
 const SUPABASE_URL = 'https://gjlrqshqeikivymipkim.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_0LEbw-l8RWq2ogHmt_h1Ew_8gkqcT9q';
 
 // 初始化Supabase
-let supabase: any = null;
-if (typeof window !== 'undefined' && (window as any)['supabase']) {
-  const { createClient } = (window as any)['supabase'];
-  supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-}
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const TestPage: React.FC = () => {
   // 昵称输入状态
@@ -105,6 +105,14 @@ const TestPage: React.FC = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
+      const unansweredCount = answers.filter(a => a === null).length;
+      if (unansweredCount > 0) {
+        const confirmed = window.confirm(`您还有 ${unansweredCount} 道题未作答，确定要提交吗？`);
+        if (!confirmed) {
+          return;
+        }
+      }
+
       const numericalAnswers = answers.map(answer => {
         switch (answer) {
           case 'A': return 1;
@@ -163,7 +171,8 @@ const TestPage: React.FC = () => {
   if (!showStartTest) {
     return (
       <div className="test-page">
-        <h1 className="test-title">CBTI当代大学生沙雕热梗人格测试</h1>
+        <h1 className="test-title">CBTI-大学生人格测试(jxau版)</h1>
+        <img src={logoImg} alt="CBTI Logo" className="cbti-logo" />
         <div className="auth-container">
           <div className="auth-card">
             <h2>欢迎参与测试</h2>
@@ -284,7 +293,7 @@ const TestPage: React.FC = () => {
   // 答题页
   return (
     <div className="test-page">
-      <h1 className="test-title">CBTI当代大学生沙雕热梗人格测试</h1>
+      <h1 className="test-title">CBTI-大学生人格测试(jxau版)</h1>
       <div className="progress">
         <div
           className="progress-bar"

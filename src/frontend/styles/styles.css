@@ -39,6 +39,15 @@ body {
   letter-spacing: 1px;
 }
 
+.cbti-logo {
+  display: block; /* 使图片成为块级元素，方便居中 */
+  margin: 0 auto 30px auto; /* 上下外边距30px，左右自动，实现水平居中 */
+  max-width: 150px; /* 控制图片最大宽度 */
+  height: auto; /* 保持图片比例 */
+  border-radius: 10px; /* 轻微圆角 */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
+}
+
 /* 进度条样式 */
 .progress {
   position: relative;
