@@ -242,9 +242,13 @@ body {
 
 .personality-code {
   font-size: 24px;
-  color: #4CAF50;
+  color: #4a6fa5;
   font-weight: bold;
   text-transform: uppercase;
+  background-color: #e6f0fa;
+  padding: 5px 20px;
+  border-radius: 20px;
+  display: inline-block;
 }
 
 .personality-icon {
@@ -268,6 +272,9 @@ body {
   margin-bottom: 30px;
   color: #666;
   font-style: italic;
+  background-color: #f4f7fb;
+  padding: 20px;
+  border-radius: 12px;
 }
 
 /* 维度结果样式 */
@@ -327,6 +334,10 @@ body {
   margin: 10px 0;
   font-size: 14px;
   text-align: left;
+  background-color: #f0f4f8;
+  padding: 10px 15px;
+  border-left: 4px solid #4a6fa5;
+  border-radius: 4px;
 }
 
 .dimension-interpretation {
@@ -335,6 +346,10 @@ body {
   color: #666;
   margin-top: 10px;
   text-align: justify !important;
+  background-color: #ffffff;
+  padding: 15px;
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
 }
 
 /* 昵称输入框样式 */

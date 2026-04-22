@@ -41,17 +41,25 @@ export function calculateScores(answers: (1 | 0 | -1)[]): DimensionScore {
 
 // 确定维度方向
 export function determineDirection(score: number, maxPossibleScore: number): DimensionDirection {
-  const threshold = maxPossibleScore * 0.5;
-  return score > threshold ? 'positive' : 'negative';
+  if (score > 0) return 'positive';
+  if (score < 0) return 'negative';
+  return 'neutral';
 }
 
 // 匹配人格
 export function matchPersonality(scores: DimensionScore, maxPossibleScores: DimensionScore): Personality {
+  // First, check if all or mostly neutral
+  const neutralCount = Object.values(scores).filter(s => s === 0).length;
+  if (neutralCount >= 3) {
+    const balance = personalities.find(p => p.code === 'BALANCE');
+    if (balance) return balance;
+  }
+  
   const dimensionDirections = {
-    S: determineDirection(scores.S, maxPossibleScores.S),
-    L: determineDirection(scores.L, maxPossibleScores.L),
-    D: determineDirection(scores.D, maxPossibleScores.D),
-    W: determineDirection(scores.W, maxPossibleScores.W)
+    S: scores.S >= 0 ? 'positive' : 'negative',
+    L: scores.L >= 0 ? 'positive' : 'negative',
+    D: scores.D >= 0 ? 'positive' : 'negative',
+    W: scores.W >= 0 ? 'positive' : 'negative'
   };
   
   const matchedPersonalities = personalities.filter(personality => {
@@ -114,21 +122,28 @@ export function generateTestResult(answers: (1 | 0 | -1)[]): TestResult {
   const maxPossibleScores = getMaxPossibleScores();
   const personality = matchPersonality(scores, maxPossibleScores);
   
+  const isBalance = personality.code === 'BALANCE';
+  
+  const getDirection = (score: number) => {
+    if (isBalance) return 'neutral';
+    return score > 0 ? 'positive' : score < 0 ? 'negative' : 'neutral';
+  };
+  
   const dimensionResults = {
     S: {
-      direction: determineDirection(scores.S, maxPossibleScores.S),
+      direction: getDirection(scores.S) as DimensionDirection,
       score: scores.S
     },
     L: {
-      direction: determineDirection(scores.L, maxPossibleScores.L),
+      direction: getDirection(scores.L) as DimensionDirection,
       score: scores.L
     },
     D: {
-      direction: determineDirection(scores.D, maxPossibleScores.D),
+      direction: getDirection(scores.D) as DimensionDirection,
       score: scores.D
     },
     W: {
-      direction: determineDirection(scores.W, maxPossibleScores.W),
+      direction: getDirection(scores.W) as DimensionDirection,
       score: scores.W
     }
   };

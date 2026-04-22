@@ -219,5 +219,18 @@ export const personalities: Personality[] = [
     },
     description: '爱玩爱聚餐喝酒，随性摆烂，情绪全靠酒精释放',
     isEasterEgg: true
+  },
+  {
+    id: '19',
+    name: '均衡发展者',
+    code: 'BALANCE',
+    dimensions: {
+      S: 'neutral',
+      L: 'neutral',
+      D: 'neutral',
+      W: 'neutral'
+    },
+    description: '各方面都比较均衡，没有特别明显的倾向，适应能力强',
+    isEasterEgg: true
   }
 ];

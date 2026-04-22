@@ -1,6 +1,6 @@
 // 人格类型图标
 // 采用方块Lowpoly沙盒几何小人画风，棱角方块极简沙雕风格
-export const personalityIcons = {
+export const personalityIcons: Record<string, string> = {
   'IMSB': `
     <svg width="150" height="150" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
       <!-- 头部 -->
@@ -392,3 +392,15 @@ export const personalityIcons = {
     </svg>
   `
 };
+
+personalityIcons['BALANCE'] = `
+  <svg width="150" height="150" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="40" fill="url(#balanceGradient)" />
+    <defs>
+      <linearGradient id="balanceGradient" x1="10" y1="10" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#667eea" />
+        <stop offset="100%" stop-color="#764ba2" />
+      </linearGradient>
+    </defs>
+  </svg>
+`;

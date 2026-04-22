@@ -2,7 +2,7 @@
 export type DimensionType = 'S' | 'L' | 'D' | 'W';
 
 // 维度方向定义
-export type DimensionDirection = 'positive' | 'negative';
+export type DimensionDirection = 'positive' | 'negative' | 'neutral';
 
 // 维度得分接口
 export interface DimensionScore {
